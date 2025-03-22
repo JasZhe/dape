@@ -57,6 +57,7 @@
 (require 'hexl)
 (require 'tramp)
 (require 'jsonrpc)
+(require 'find-lisp)
 
 
 ;;; Custom
@@ -345,6 +346,18 @@
     (jdtls
      modes (java-mode java-ts-mode)
      ensure (lambda (config)
+              (unless (plist-get config :sourcePaths)
+                (plist-put config :sourcePaths
+                           (let ((file-pred (lambda (file dir)
+                                              (let ((expanded (expand-file-name file dir)))
+                                                (and (file-directory-p expanded)
+                                                     (not (or (string= file ".") (string= file "..")))
+                                                     (string-match-p ".*src/main/java$" expanded))))))
+                             (coerce (find-lisp-find-files-internal
+                                      (project-root (project-current))
+                                      file-pred
+                                      #'find-lisp-default-directory-predicate)
+                                     'vector))))
               (let ((file (dape-config-get config :filePath)))
                 (unless (and (stringp file) (file-exists-p file))
                   (user-error "Unable to locate :filePath `%s'" file))
